@@ -10,6 +10,9 @@ function init() {
         .text(sample)
         .property("value", sample);
     });
+
+  //Open Display [0] Volunteer
+  optionChanged(data.names[0]);
 })}
 
 function optionChanged(newSample) {
@@ -17,6 +20,8 @@ function optionChanged(newSample) {
   buildCharts(newSample);
   console.log(newSample);
 }
+
+init();
 
 function buildMetadata(sample) {
   d3.json("samples.json").then((data) => {
@@ -36,73 +41,79 @@ function buildMetadata(sample) {
   });    
 }
 
+//Build the Charts
+function buildCharts(sample) {
+  d3.json("samples.json").then((data) => {
 
+  //Filter data for the selected ID
+  var samples = data.samples;
+  var resultArray = samples.filter(obj => obj.id == sample)[0];
 
+  //Create list of objects for bacteria
+  var testArray = [];
+  var numValues = resultArray.otu_ids.length;
+  for (i=0; i<numValues; i++) {
+      testArray.push({
+          otu_id: resultArray.otu_ids[i],
+          sample_value: resultArray.sample_values[i],
+          otu_label: resultArray.otu_labels[i]
+      })
+  }
 
-//<select id="selDataset" onchange="optionChanged(this.value)"></select>
+  //Sort in decencing orders and create Top 10
+  var sortedArray = testArray.sort((a,b) => b.sample_value - a.sample_value);
+  var slicedArray = sortedArray.slice(0,10);
 
-d3.selectAll("#dropdownMenu").on("change", updatePlotly);
-function updatePlotly() {
-  var dropdownMenu = d3.select("#dropdownMenu");
-  var dataset = dropdownMenu.property("value");
+  //Map list of objects to create arrays
+  var lst_otuid = slicedArray.map(i => ("OTU " +i.otu_id)).reverse();
+  var lst_samplevalues = slicedArray.map(i => i.sample_value).reverse();
+  var lst_otulabel = slicedArray.map(i => i.otu_label).reverse();
 
-  var xData = [1, 2, 3, 4, 5];
-  var yData = [];
-
-  if (dataset === 'dataset1') {
-    yData = [1, 2, 4, 8, 16];
+  var barDataset = {
+      x: lst_samplevalues,
+      y: lst_otuid,
+      type: "bar",
+      orientation: "h",
+      text: lst_otulabel
   };
 
-  if (dataset === 'dataset2') {
-    yData = [1, 10, 100, 1000, 10000];
-  };
+  var layout = {
+      title: "Top 10 Bacteria"
+  }
+  
+  //Build Bar Chart
+  Plotly.newPlot("bar",[barDataset], layout);
 
-  var trace = {
-    x: [xData],
-    y: [yData],
-  };
-  Plotly.restyle("plot", trace);
-};
-
-init();
-
+  //Map list of objects to create arrays
+  var lst_otuid = testArray.map(i => i.otu_id);
+  var lst_samplevalues = testArray.map(i => i.sample_value);
+  var lst_otulabel = testArray.map(i => i.otu_label);
 
 
+  //Build Bubble Chart
+  var bubbleDataset = {
+      x: lst_otuid,
+      y: lst_samplevalues,
+      text: lst_otulabel,
+      mode: 'markers',
+      marker: {
+          color: lst_otuid,
+          size: lst_samplevalues,
+          colorscale: "Earth"
+      }
+      };
+  
+  
+  var layout = {
+      title: "Bacteria Count Frequency",
+      xaxis: { title: "OTU ID" },
+      yaxis: { title: "Bacteria Count"},
+      height: 550,
+      width: 1250
+      };
+      
+  Plotly.newPlot('bubble', [bubbleDataset], layout);
+  });
 
-
-
-
-
-
-d3.json("samples.json").then((data) => {
-  console.log(data);
-});
-
-
-d3.json("samples.json").then(function(data){
-  wfreq = data.metadata.map(person =>
-person.wfreq).sort((a,b) => b - a);
-  filteredWfreq = wfreq.filter(element => element !=
-null);
-  console.log(filteredWfreq);
-});
-
-researcher1 = {
-  name: 'Roza',
-  age: 34,
-  hobby: 'Hiking'
-};
-
-console.log(Object.entries(researcher1));
-
-researcher1 = [['name', 'Roza'], ['age', 34], ['hobby',
-'Hiking']];
-researcher1.forEach(([first, second]) => console.log(first
-+ ": " + second));
-
-d3.json("samples.json").then(function(data){
-  firstPerson = data.metadata[0];
-  Object.entries(firstPerson).forEach(([key, value]) =>
-    {console.log(key + ': ' + value);});
-});
+}
 
